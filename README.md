@@ -3,11 +3,11 @@
 <div align="center">
 
 [![AWS Well-Architected](https://img.shields.io/badge/AWS-Well--Architected-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/architecture/well-architected/)
-[![Security](https://img.shields.io/badge/Security-Defense--in--Depth-critical?style=for-the-badge)](./docs/threat-model.md)
+[![Security](https://img.shields.io/badge/Security-Least--Privilege%20%26%20Encrypted-critical?style=for-the-badge)](./docs/threat-model.md)
 [![DR](https://img.shields.io/badge/DR-Multi--Region-blue?style=for-the-badge)](./docs/disaster-recovery.md)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey?style=for-the-badge)](./LICENSE)
 
-**A production-style, security-first, serverless image processing platform engineered against the AWS Well-Architected Framework — least-privilege IAM, defense-in-depth, event-driven scaling, and multi-region disaster recovery.**
+**A serverless image processing platform designed around the AWS Well-Architected Framework — least-privilege IAM, encrypted data paths, edge-level protection, and multi-region disaster recovery, with every design decision documented and traceable.**
 
 </div>
 
@@ -16,13 +16,14 @@
 ## Features
 
 ✅ **Serverless Architecture**  
-✅ **Secure by Design** (Least Privilege + OAC + CMK)  
+✅ **Least-Privilege IAM** (scoped roles, zero standing credentials)  
+✅ **Encrypted Data Paths** (Customer-Managed KMS, TLS in transit)  
 ✅ **Event-Driven Processing** (SQS + DLQ)  
 ✅ **Global Private Delivery** (CloudFront + OAC)  
+✅ **Edge Protection** (AWS WAF managed rules)  
+✅ **Detective Controls** (GuardDuty + Security Hub + CloudTrail)  
 ✅ **Multi-Region Disaster Recovery** (feature-flagged)  
-✅ **Comprehensive Monitoring** (CloudWatch + GuardDuty + Security Hub)  
-✅ **Well-Architected Alignment**  
-✅ **Defense-in-Depth Security**
+✅ **Well-Architected Alignment**
 
 ---
 
@@ -83,7 +84,7 @@ This project demonstrates how to build a secure and scalable image processing so
 
 - Secure direct-to-S3 uploads using presigned URLs
 - Event-driven image processing with SQS buffering
-- Defense-in-depth security architecture
+- Layered security controls: IAM, encryption, edge protection, and detective monitoring
 - Private content delivery through CloudFront OAC
 - End-to-end encryption using AWS KMS
 - Multi-region disaster recovery design
@@ -142,12 +143,12 @@ This project demonstrates how to build a secure and scalable image processing so
 
 ## Security Architecture
 
-**Defense-in-Depth Highlights:**
+**Security Design Highlights:**
 - Zero standing credentials for clients
 - Private S3 buckets with Origin Access Control
 - Customer Managed KMS Keys with scoped key policies
 - AWS WAF Managed Rules at CloudFront edge
-- GuardDuty + Security Hub + CloudTrail
+- GuardDuty + Security Hub + CloudTrail for continuous detection and audit
 
 ![Security Hub](./screenshots/01-security/security-hub-summary.png)
 
