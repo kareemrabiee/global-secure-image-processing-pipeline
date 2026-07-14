@@ -1,0 +1,26 @@
+# Threat Model
+
+This threat model applies a structured risk assessment to the Global Secure Image Processing Pipeline, mapping each identified threat to its residual risk rating, the mitigating control(s), and the AWS service(s) responsible for enforcement. Ratings reflect residual risk **after** the documented mitigation is applied, not inherent/unmitigated risk.
+
+| Threat | Risk (Residual) | Mitigation | AWS Service(s) Used |
+|---|:---:|---|---|
+| **Cross-Site Scripting (XSS)** | Low | AWS Managed Common Rule Set inspects and blocks requests matching known XSS injection patterns at the CloudFront edge, before reaching any origin | AWS WAF, Amazon CloudFront |
+| **SQL Injection (SQLi)** | Low | Same managed rule group inspects for SQL injection signatures at the edge; the application layer additionally has no direct SQL interface (DynamoDB is not vulnerable to traditional SQLi), removing the underlying attack surface entirely | AWS WAF, Amazon CloudFront, Amazon DynamoDB |
+| **Distributed Denial of Service (DDoS)** | Low–Medium | CloudFront's global edge network absorbs and distributes volumetric traffic; AWS Shield Standard is automatically active on CloudFront/API Gateway at no additional cost; WAF rate-based rules provide an additional layer against application-layer floods | Amazon CloudFront, AWS Shield Standard, AWS WAF |
+| **Unauthorized Access to Processed Assets** | Low | S3 Block Public Access enforced on all buckets; CloudFront OAC is the sole authorized principal, scoped by distribution ARN via bucket policy condition | Amazon S3, Amazon CloudFront (OAC) |
+| **Sensitive Data Exposure (at rest)** | Low | All objects (upload and processed buckets) encrypted with a Customer Managed KMS Key; key policy restricts decrypt/encrypt operations to explicitly authorized IAM roles | AWS KMS, Amazon S3 |
+| **Sensitive Data Exposure (in transit)** | Low | CloudFront enforces `redirect-to-https`; API Gateway endpoints are TLS-only by default | Amazon CloudFront, Amazon API Gateway |
+| **Public S3 Bucket Misconfiguration** | Low | `block_public_acls`, `block_public_policy`, `ignore_public_acls`, and `restrict_public_buckets` are enforced on every bucket at the bucket level; no bucket policy statement grants a public or wildcard principal | Amazon S3 (Block Public Access) |
+| **Credential Abuse / Standing Credential Theft** | Low | Clients never receive long-lived or static AWS credentials; uploads are authorized via short-lived (5-minute), scoped presigned POST policies generated per-request | AWS Lambda (GenerateUploadURL), Amazon S3 Presigned POST |
+| **IAM Privilege Escalation / Lateral Movement** | Low | Every function-level IAM role is scoped to explicit resource ARNs (specific bucket, queue, table, key); no managed `*FullAccess` policies are attached anywhere in the stack | AWS IAM |
+| **Regional Service Disruption** | Medium (accepted at Phase 1; mitigated when Phase 2 DR is active) | S3 Cross-Region Replication, DynamoDB Global Tables, and CloudFront Origin Group failover provide a documented multi-region recovery path; feature-flagged for cost control rather than always-on | Amazon S3 (CRR), Amazon DynamoDB (Global Tables), Amazon CloudFront (Origin Group) |
+| **Malicious or Malformed Upload Content** | Low–Medium | Content-type restriction enforced in the presigned POST policy; optional Amazon Rekognition content moderation flags unsafe content post-upload; processing failures are isolated to the DLQ rather than affecting the ingestion path | Amazon S3, Amazon Rekognition, Amazon SQS (DLQ) |
+| **Poison Message / Processing Loop Denial of Service** | Low | Bounded retry count (3 attempts) with automatic Dead Letter Queue redirection prevents a single malformed message from consuming processing capacity indefinitely | Amazon SQS (main queue + DLQ) |
+| **Unauthorized or Undetected Account-Level Activity** | Low | Multi-region CloudTrail with log file validation provides tamper-evident audit trail; GuardDuty provides continuous behavioral threat detection; Security Hub aggregates findings against a recognized security standard | AWS CloudTrail, Amazon GuardDuty, AWS Security Hub |
+| **Insecure Cross-Region Replication of Encrypted Data** | Low | Replication rule explicitly enables `sse_kms_encrypted_objects` source selection criteria; destination bucket re-encrypts with a dedicated, region-local Customer Managed Key rather than relying on cross-region key references (unsupported by KMS) | Amazon S3 (CRR), AWS KMS |
+
+## Notes on Methodology
+
+- Risk ratings are qualitative (Low / Medium / High) and reflect likelihood and impact **after** the documented control is in place, informed by AWS Well-Architected Security Pillar guidance and common cloud threat intelligence patterns (e.g., MITRE ATT&CK for Cloud, OWASP Top 10).
+- Threats tied to Phase 2 (feature-flagged) controls are rated assuming those controls are active for a production deployment; when a Phase 2 flag is disabled for cost reasons in a demo/portfolio context, the corresponding residual risk should be treated as elevated for the duration the control is off.
+- This threat model should be revisited whenever a new AWS service is introduced into the architecture, an IAM policy is materially changed, or a new external integration (e.g., a third-party webhook) is added.
